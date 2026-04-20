@@ -4,9 +4,9 @@ import subprocess
 import ctypes
 import threading
 import platform
+import time
 import customtkinter as ctk
 
-# إعدادات المظهر
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
@@ -25,69 +25,84 @@ class InstallerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("EKO FLASH - Samsung Driver Installer")
-        self.geometry("500x350")
+        self.title("EKO FLASH PRO - Premium Installer")
+        self.geometry("550x400")
         self.resizable(False, False)
+        self.configure(fg_color="#0a0a0f")
 
-        # العناوين والجماليات
-        self.label = ctk.CTkLabel(self, text="SAMSUNG USB DRIVERS", font=("Orbitron", 22, "bold"), text_color="#3B8ED0")
-        self.label.pack(pady=(20, 10))
+        self.label = ctk.CTkLabel(self, text="SAMSUNG USB DRIVERS", font=("Segoe UI", 26, "bold"), text_color="#00E5FF")
+        self.label.pack(pady=(30, 5))
 
-        self.sub_label = ctk.CTkLabel(self, text="Lead Developer: Ahmed Younis\nCo-Developer: Omar Hesham", font=("Segoe UI", 12))
+        self.sub_label = ctk.CTkLabel(self, text="Lead Developer: Ahmed Younis\nCo-Developer: Omar Hesham", font=("Segoe UI", 12, "bold"), text_color="#FFD700")
         self.sub_label.pack(pady=5)
 
-        # حالة التثبيت
-        self.status_label = ctk.CTkLabel(self, text="Ready to Install", text_color="gray")
-        self.status_label.pack(pady=(20, 5))
+        self.status_frame = ctk.CTkFrame(self, width=450, height=80, fg_color="#12121c", corner_radius=10, border_width=1, border_color="#00E5FF")
+        self.status_frame.pack(pady=(20, 10))
+        self.status_frame.pack_propagate(False)
 
-        # شريط التقدم
-        self.progress = ctk.CTkProgressBar(self, width=400)
+        self.status_label = ctk.CTkLabel(self.status_frame, text="SYSTEM READY FOR DEPLOYMENT", font=("Consolas", 12, "bold"), text_color="#A0A0B0")
+        self.status_label.pack(expand=True)
+
+        self.progress = ctk.CTkProgressBar(self, width=450, height=8, progress_color="#00E5FF", fg_color="#1a1a24")
         self.progress.set(0)
-        self.progress.pack(pady=10)
+        self.progress.pack(pady=15)
 
-        # أزرار التحكم
-        self.install_btn = ctk.CTkButton(self, text="START INSTALLATION", command=self.start_thread, 
-                                        fg_color="#1f538d", hover_color="#14375e", font=("Segoe UI", 14, "bold"))
-        self.install_btn.pack(pady=20)
+        self.install_btn = ctk.CTkButton(self, text="INITIALIZE INSTALLATION", command=self.start_thread,
+                                        fg_color="transparent", hover_color="#003344", border_width=2,
+                                        border_color="#00E5FF", text_color="#00E5FF", font=("Segoe UI", 14, "bold"),
+                                        corner_radius=8, width=250, height=40)
+        self.install_btn.pack(pady=10)
 
-        self.footer = ctk.CTkLabel(self, text="Status: Waiting for user...", font=("Segoe UI", 10), text_color="#555")
+        self.footer = ctk.CTkLabel(self, text="EKO FLASH PRO SYSTEM \u00A9 2026", font=("Segoe UI", 10), text_color="#444455")
         self.footer.pack(side="bottom", pady=10)
 
+        self.animation_running = False
+
+    def animate_status(self, dots=0):
+        if not self.animation_running:
+            return
+        dots = (dots + 1) % 4
+        text = f"DEPLOYING DRIVERS{'.' * dots}"
+        self.status_label.configure(text=text, text_color="#FFD700")
+        self.after(400, self.animate_status, dots)
+
     def start_thread(self):
-        # تشغيل التثبيت في خلفية منفصلة لضمان استجابة الواجهة
-        self.install_btn.configure(state="disabled")
-        self.status_label.configure(text="Installing... Please wait", text_color="#FFCC00")
+        self.install_btn.configure(state="disabled", text="PROCESSING...")
         self.progress.start()
+        self.animation_running = True
+        self.animate_status()
         threading.Thread(target=self.run_installation, daemon=True).start()
 
     def run_installation(self):
-        # تحديد ملف التثبيت بناءً على معمارية الجهاز (64 أو 86) من واقع ملفاتك
+        time.sleep(1.5)
+
         is_64bit = platform.machine().endswith('64')
         installer_file = "installer_x64.exe" if is_64bit else "installer_x86.exe"
         
-        # المسار الصحيح للملف داخل مجلد DriverUsb
-        setup_path = get_resource_path(os.path.join("DriverUsb", installer_file))
+        setup_path = get_resource_path(installer_file)
 
         if not is_admin():
-            self.update_ui("Error: Admin Rights Required!", "#FF3333")
+            self.finalize_ui("CRITICAL ERROR: ADMIN RIGHTS REQUIRED", "#FF3333", 0)
             return
 
         if os.path.exists(setup_path):
             try:
-                # تشغيل التثبيت الصامت باستخدام الوسائط القياسية لتعريفات سامسونج
                 subprocess.run([setup_path, "/S"], check=True)
-                self.update_ui("SUCCESS: Drivers Installed!", "#00FF7F")
+                self.finalize_ui("SUCCESS: DRIVERS DEPLOYED", "#00FF7F", 1)
             except Exception:
-                self.update_ui("Installation Failed!", "#FF3333")
+                self.finalize_ui("ERROR: INSTALLATION FAILED", "#FF3333", 0)
         else:
-            self.update_ui(f"File Not Found: {installer_file}", "#FF3333")
+            self.finalize_ui(f"ERROR: MISSING COMPONENT ({installer_file})", "#FF3333", 0)
 
-    def update_ui(self, message, color):
+    def finalize_ui(self, message, color, progress_val):
+        self.animation_running = False
         self.progress.stop()
-        self.progress.set(1)
+        self.progress.set(progress_val)
         self.status_label.configure(text=message, text_color=color)
-        self.footer.configure(text="Operation Finished.")
-        self.install_btn.configure(state="normal", text="EXIT", command=self.quit)
+        
+        btn_hover = "#330000" if color == "#FF3333" else "#003311"
+        self.install_btn.configure(state="normal", text="TERMINATE SYSTEM", command=self.quit,
+                                   border_color=color, text_color=color, hover_color=btn_hover)
 
 if __name__ == "__main__":
     app = InstallerApp()
