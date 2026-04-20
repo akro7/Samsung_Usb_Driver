@@ -23,29 +23,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller customtkinter darkdetect packaging
 
-    - name: Create Driver Directory
-      run: |
-        # إنشاء المجلد إذا لم يكن موجوداً لمنع خطأ PyInstaller
-        if (!(Test-Path "DriverUsb")) {
-            New-Item -ItemType Directory -Path "DriverUsb"
-            Write-Host "Directory DriverUsb created successfully."
-        }
-        # تأكد من وضع ملفات التعريفات داخل هذا المجلد في جهازك قبل الرفع 
-        # أو يمكنك إضافة أوامر هنا لتحميلها إذا كانت مخزنة في مكان آخر.
-
     - name: Build Executable
       run: |
-        # التأكد من محتويات المجلد قبل البناء (للتصحيح)
-        dir DriverUsb
-        
-        # بناء الملف التنفيذي
+        # تم تعديل --add-data لتشمل الملفات من المسار الرئيسي مباشرة (.)
+        # تم إضافة الملفين الخاصين بالنظامين (x64 و x86) لضمان عمل البرنامج عند المستخدم
         pyinstaller --onefile --noconsole --uac-admin `
         --collect-all customtkinter `
-        --add-data "DriverUsb;DriverUsb" `
-        --name "EKO_Samsung_Drivers" main.py
+        --add-data "installer_x64.exe;." `
+        --add-data "installer_x86.exe;." `
+        --add-data "Gadget_Serial.inf;." `
+        --add-data "Gadget_Serial.cat;." `
+        --name "EKO_Samsung_Drivers_Pro" main.py
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Samsung-Pro-Installer
-        path: dist/EKO_Samsung_Drivers.exe
+        path: dist/EKO_Samsung_Drivers_Pro.exe
