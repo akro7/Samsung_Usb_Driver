@@ -1,0 +1,40 @@
+name: Build Samsung Driver Tool
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller customtkinter darkdetect packaging
+
+    - name: Build Executable
+      run: |
+        # --collect-all customtkinter: بتضمن إن كل ملفات الثيمات والألوان تدخل جوه الـ EXE
+        # --add-data "DriverUsb;DriverUsb": لدمج مجلد التعريفات اللي ظهر في الصورة
+        # --uac-admin: لطلب صلاحيات المسؤول (مهم جداً لتثبيت التعريفات)
+        pyinstaller --onefile --noconsole --uac-admin `
+        --collect-all customtkinter `
+        --add-data "DriverUsb;DriverUsb" `
+        --name "EKO_Samsung_Drivers" main.py
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Samsung-Pro-Installer
+        path: dist/EKO_Samsung_Drivers.exe
