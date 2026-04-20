@@ -23,11 +23,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller customtkinter darkdetect packaging
 
+    - name: Create Driver Directory
+      run: |
+        # إنشاء المجلد إذا لم يكن موجوداً لمنع خطأ PyInstaller
+        if (!(Test-Path "DriverUsb")) {
+            New-Item -ItemType Directory -Path "DriverUsb"
+            Write-Host "Directory DriverUsb created successfully."
+        }
+        # تأكد من وضع ملفات التعريفات داخل هذا المجلد في جهازك قبل الرفع 
+        # أو يمكنك إضافة أوامر هنا لتحميلها إذا كانت مخزنة في مكان آخر.
+
     - name: Build Executable
       run: |
-        # --collect-all customtkinter: بتضمن إن كل ملفات الثيمات والألوان تدخل جوه الـ EXE
-        # --add-data "DriverUsb;DriverUsb": لدمج مجلد التعريفات اللي ظهر في الصورة
-        # --uac-admin: لطلب صلاحيات المسؤول (مهم جداً لتثبيت التعريفات)
+        # التأكد من محتويات المجلد قبل البناء (للتصحيح)
+        dir DriverUsb
+        
+        # بناء الملف التنفيذي
         pyinstaller --onefile --noconsole --uac-admin `
         --collect-all customtkinter `
         --add-data "DriverUsb;DriverUsb" `
